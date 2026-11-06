@@ -1,4 +1,4 @@
-const API = "https://api.discogs.com";
+const DEFAULT_API = "https://api.discogs.com";
 export const USER_AGENT = "discogs-telegram-bot/1.0 (+https://github.com/badta5te/discogs-telegram)";
 
 export type Kind = "release" | "master";
@@ -41,7 +41,21 @@ export interface Stats {
 }
 
 export class Discogs {
-  constructor(private token: string) {}
+  private base: string;
+
+  // Discogs limits requests per source IP, and Workers share theirs with everyone else.
+  // `apiUrl` lets requests go through a proxy with its own IP; `proxySecret` keeps that proxy private.
+  constructor(
+    private token: string,
+    apiUrl?: string,
+    private proxySecret?: string,
+  ) {
+    this.base = (apiUrl || DEFAULT_API).replace(/\/+$/, "");
+  }
+
+  static fromEnv(env: { DISCOGS_TOKEN: string; DISCOGS_API_URL?: string; DISCOGS_PROXY_SECRET?: string }): Discogs {
+    return new Discogs(env.DISCOGS_TOKEN, env.DISCOGS_API_URL, env.DISCOGS_PROXY_SECRET);
+  }
 
   async release(id: number): Promise<ReleaseInfo> {
     const r = await this.get<RawRelease>(`/releases/${id}`);
@@ -95,12 +109,14 @@ export class Discogs {
   }
 
   private async get<T>(path: string): Promise<T> {
-    const res = await fetch(API + path, {
-      headers: {
-        "User-Agent": USER_AGENT,
-        Authorization: `Discogs token=${this.token}`,
-        Accept: "application/vnd.discogs.v2.discogs+json",
-      },
+    const headers: Record<string, string> = {
+      "User-Agent": USER_AGENT,
+      Authorization: `Discogs token=${this.token}`,
+      Accept: "application/vnd.discogs.v2.discogs+json",
+    };
+    if (this.proxySecret) headers["X-Proxy-Secret"] = this.proxySecret;
+    const res = await fetch(this.base + path, {
+      headers,
       signal: AbortSignal.timeout(10_000),
     });
     if (res.status === 404) throw new NotFound(`Discogs ${path} not found`);

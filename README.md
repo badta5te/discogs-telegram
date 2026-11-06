@@ -15,6 +15,10 @@ A Telegram bot that watches the Discogs marketplace for a short "most wanted" li
 
 The Discogs API has no "all listings for a release" endpoint. It gives the number of copies for sale and the lowest price **across all conditions, without shipping**. So an alert can be about a Poor copy; open the listing to see the details. Filtering by condition, seller country or shipping would need scraping the sell page, which this bot doesn't do.
 
+### Discogs rate limit from Workers
+
+Discogs counts its 60 requests a minute per source IP, and Cloudflare Workers share their IPs with everyone else's workers. If `wrangler tail` shows `Discogs rate limit hit … x-discogs-ratelimit-remaining=0` while the same request from your laptop works, route the bot through a small proxy with its own IP: see [proxy/README.md](proxy/README.md).
+
 ## Commands
 
 | Command | |

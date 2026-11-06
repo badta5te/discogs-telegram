@@ -6,6 +6,8 @@ export interface Env {
   TELEGRAM_CHAT_ID: string; // one id or several, comma-separated
   TELEGRAM_WEBHOOK_SECRET: string;
   DISCOGS_TOKEN: string;
+  DISCOGS_API_URL?: string; // proxy base URL, see proxy/README.md; defaults to https://api.discogs.com
+  DISCOGS_PROXY_SECRET?: string;
   CURRENCY: string;
   BATCH_SIZE: string;
   MAX_MASTER_VERSIONS: string;
