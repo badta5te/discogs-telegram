@@ -1,4 +1,4 @@
-import { Discogs, NotFound, parseRef, Ref } from "./discogs";
+import { Discogs, NotFound, parseRef, RateLimited, Ref } from "./discogs";
 import { chatIds, Env, sellUrl } from "./env";
 import { insertTargets } from "./poll";
 import { answerCallback, escapeHtml, formatPrice, Keyboard, Message, send } from "./telegram";
@@ -70,7 +70,9 @@ export async function handleUpdate(env: Env, update: Update): Promise<void> {
     await reply("Не понял. /help — что я умею.");
   } catch (err) {
     console.error("command failed", text, err);
-    await reply(err instanceof NotFound ? "Discogs такого не знает, проверь id." : "Что-то пошло не так, попробуй ещё раз.");
+    if (err instanceof NotFound) return await reply("Discogs такого не знает, проверь id.");
+    if (err instanceof RateLimited) return await reply("Discogs ответил «слишком много запросов». Попробуй через минуту.");
+    await reply(`Что-то пошло не так: ${escapeHtml(String(err instanceof Error ? err.message : err)).slice(0, 300)}`);
   }
 }
 
