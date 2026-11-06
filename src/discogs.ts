@@ -103,11 +103,25 @@ export class Discogs {
       },
       signal: AbortSignal.timeout(10_000),
     });
-    if (res.status === 429) throw new RateLimited("Discogs rate limit hit");
     if (res.status === 404) throw new NotFound(`Discogs ${path} not found`);
-    if (!res.ok) throw new Error(`Discogs ${path} responded ${res.status}`);
+    if (!res.ok) {
+      const detail = await describeFailure(res);
+      if (res.status === 429) throw new RateLimited(`Discogs rate limit hit: ${detail}`);
+      throw new Error(`Discogs ${path} responded ${res.status}: ${detail}`);
+    }
     return res.json() as Promise<T>;
   }
+}
+
+// Who answered and why: Discogs' own rate limiter sends X-Discogs-Ratelimit-* headers,
+// a Cloudflare block in front of it doesn't.
+export async function describeFailure(res: Response): Promise<string> {
+  const headers = ["server", "cf-ray", "cf-mitigated", "retry-after", "x-discogs-ratelimit", "x-discogs-ratelimit-remaining"]
+    .map((h) => [h, res.headers.get(h)])
+    .filter(([, v]) => v !== null)
+    .map(([h, v]) => `${h}=${v}`);
+  const body = (await res.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 200);
+  return [headers.join(" "), body].filter(Boolean).join(" | ");
 }
 
 // Discogs marks duplicate artist names as "Name (2)"; drop that for display.

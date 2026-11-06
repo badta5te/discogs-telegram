@@ -193,3 +193,22 @@ describe("bot + poller", () => {
     expect(telegram.filter((t) => String(t.body.text).includes("⚠️"))).toHaveLength(1);
   });
 });
+
+describe("Discogs failures", () => {
+  it("logs who answered a 429 and tells the user", async () => {
+    const env = makeEnv();
+    const errors: unknown[][] = [];
+    vi.spyOn(console, "error").mockImplementation((...args) => void errors.push(args));
+    vi.stubGlobal("fetch", async (input: string, init?: RequestInit) => {
+      const url = new URL(String(input));
+      if (url.hostname === "api.telegram.org") {
+        telegram.push({ method: "sendMessage", body: JSON.parse(String(init?.body)) });
+        return Response.json({ ok: true });
+      }
+      return new Response("<html>blocked</html>", { status: 429, headers: { server: "cloudflare", "cf-ray": "abc-FRA" } });
+    });
+    await say(env, "/add 38083371");
+    expect(lastText()).toContain("слишком много запросов");
+    expect(String(errors[0][2])).toContain("server=cloudflare cf-ray=abc-FRA | <html>blocked</html>");
+  });
+});
