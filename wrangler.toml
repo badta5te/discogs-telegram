@@ -1,0 +1,27 @@
+name = "discogs-telegram"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+# Every minute. Each run checks the targets that have waited longest, up to BATCH_SIZE.
+[triggers]
+crons = ["* * * * *"]
+
+[vars]
+CURRENCY = "EUR"
+# Discogs allows 60 requests a minute with a token; the free Workers plan allows 50 subrequests a run.
+BATCH_SIZE = "40"
+# Most versions a master expands into. Narrow it with a format filter instead of raising this.
+MAX_MASTER_VERSIONS = "100"
+FAILURE_ALERT_THRESHOLD = "10"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "discogs-telegram"
+database_id = "REPLACE_WITH_ID_FROM_wrangler_d1_create"
+migrations_dir = "migrations"
+
+[observability]
+enabled = true
+
+# Secrets (set with `wrangler secret put`):
+# TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TELEGRAM_WEBHOOK_SECRET, DISCOGS_TOKEN
