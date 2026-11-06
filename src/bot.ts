@@ -85,7 +85,7 @@ async function add(env: Env, input: string, format: string): Promise<Message | s
     .first<number>("id");
   if (existing) return `Уже в списке под номером ${existing}.`;
 
-  const discogs = new Discogs(env.DISCOGS_TOKEN);
+  const discogs = Discogs.fromEnv(env);
   return ref.kind === "release" ? addRelease(env, discogs, ref) : addMaster(env, discogs, ref, format || null);
 }
 

@@ -22,7 +22,7 @@ export interface TargetRow {
 
 // One cron run: check the targets that have waited longest, as many as fit in the request budget.
 // With few targets everything is checked every minute; with more the interval stretches on its own.
-export async function poll(env: Env, discogs = new Discogs(env.DISCOGS_TOKEN)): Promise<void> {
+export async function poll(env: Env, discogs = Discogs.fromEnv(env)): Promise<void> {
   let budget = Number(env.BATCH_SIZE);
   budget -= await syncOneMaster(env, discogs, budget);
 

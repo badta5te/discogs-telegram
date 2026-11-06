@@ -212,3 +212,22 @@ describe("Discogs failures", () => {
     expect(String(errors[0][2])).toContain("server=cloudflare cf-ray=abc-FRA | <html>blocked</html>");
   });
 });
+
+describe("Discogs proxy", () => {
+  it("sends Discogs requests through DISCOGS_API_URL with the proxy secret", async () => {
+    const env = { ...makeEnv(), DISCOGS_API_URL: "https://discogs-proxy.example.com/", DISCOGS_PROXY_SECRET: "s3cret" };
+    const seen: { host: string; secret: string | null }[] = [];
+    const inner = globalThis.fetch;
+    vi.stubGlobal("fetch", async (input: string, init?: RequestInit) => {
+      const url = new URL(String(input));
+      if (url.hostname !== "api.telegram.org") {
+        seen.push({ host: url.hostname, secret: new Headers(init?.headers).get("X-Proxy-Secret") });
+      }
+      return inner(input, init);
+    });
+    await say(env, "/add 38083371");
+    expect(lastText()).toContain("Добавил под номером 1");
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.every((s) => s.host === "discogs-proxy.example.com" && s.secret === "s3cret")).toBe(true);
+  });
+});
